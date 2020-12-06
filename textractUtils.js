@@ -85,7 +85,11 @@ const getKeyValueMap = blocks => {
     }
   });
 
-  return { keyMap, valueMap, blockMap };
+  return {
+    keyMap,
+    valueMap,
+    blockMap
+  };
 };
 
 module.exports = async buffer => {
@@ -101,7 +105,11 @@ module.exports = async buffer => {
   const data = await request.promise();
 
   if (data && data.Blocks) {
-    const { keyMap, valueMap, blockMap } = getKeyValueMap(data.Blocks);
+    const {
+      keyMap,
+      valueMap,
+      blockMap
+    } = getKeyValueMap(data.Blocks);
     const keyValues = getKeyValueRelationship(keyMap, valueMap, blockMap);
 
     return keyValues;
@@ -110,3 +118,70 @@ module.exports = async buffer => {
   // in case no blocks are found return undefined
   return undefined;
 };
+module.exports.analyzeDocument = async () => {
+  const params = {
+    Document: {
+      /* required */
+      S3Object: {
+        Bucket: 'trial-receipts',
+        Name: 'Shopify-01-11-2020-40066061.png',
+        //  Version: 'STRING_VALUE'
+      }
+    },
+    FeatureTypes: ['FORMS'] //"FORMS"]
+  };
+
+  const request = textract.analyzeDocument(params);
+  const data = await request.promise();
+
+  if (data && data.Blocks) {
+    const {
+      keyMap,
+      valueMap,
+      blockMap
+    } = getKeyValueMap(data.Blocks);
+    const keyValues = getKeyValueRelationship(keyMap, valueMap, blockMap);
+
+    return keyValues;
+  }
+
+  // in case no blocks are found return undefined
+  return undefined;
+};
+
+function showLines(arg) {
+  var lineBlocks = arg.Blocks
+  var lines = []
+  lineBlocks.forEach(block => {
+    if (block.BlockType == 'LINE') {
+      lines.push({
+        line: block.Text,
+        geometry: block.Geometry
+      })
+    }
+  })
+  return lines
+}
+
+module.exports.detect = async () => {
+
+  var params = {
+    Document: {
+      /* required */
+      //  Bytes: Buffer.from('...') || 'STRING_VALUE' /* Strings will be Base-64 encoded on your behalf */ ,
+      S3Object: {
+        Bucket: 'trial-receipts',
+        Name: 'Shopify-01-11-2020-40066061.png',
+        //  Version: 'STRING_VALUE'
+      }
+    }
+  };
+  textract.detectDocumentText(params, (err, data) => {
+    if (err) console.log(err, err.stack); // an error occurred
+    else {
+      var le = showLines(data)
+      console.log(le)
+      // return le
+    } //console.log(data); // successful response
+  });
+}
